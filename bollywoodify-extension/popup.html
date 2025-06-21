@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {
+            width: 350px;
+            padding: 0;
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #FF6B6B, #4ECDC4);
+            color: white;
+        }
+        
+        .header {
+            background: rgba(0,0,0,0.2);
+            padding: 20px;
+            text-align: center;
+            border-bottom: 2px solid rgba(255,215,0,0.3);
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 1.8em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            color: #FFD700;
+        }
+        
+        .header p {
+            margin: 5px 0 0 0;
+            opacity: 0.9;
+            font-size: 0.9em;
+        }
+        
+        .content {
+            padding: 20px;
+        }
+        
+        .status {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .button {
+            width: 100%;
+            padding: 12px;
+            background: #FFD700;
+            color: #333;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 8px 0;
+            transition: all 0.3s ease;
+        }
+        
+        .button:hover {
+            background: #FFA500;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .button:disabled {
+            background: #666;
+            color: #999;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .stats {
+            font-size: 0.85em;
+            opacity: 0.8;
+            margin-top: 15px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 10px;
+        }
+        
+        .error {
+            background: rgba(255,68,68,0.2);
+            color: #FFB3B3;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 0.9em;
+        }
+        
+        .success {
+            background: rgba(76,175,80,0.2);
+            color: #C8E6C9;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 0.9em;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 15px;
+            font-size: 0.8em;
+            opacity: 0.7;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎬 Bollywoodify</h1>
+        <p>Transform News into Bollywood Magic!</p>
+    </div>
+    
+    <div class="content">
+        <div class="status" id="status">
+            <div id="statusText">Checking current page...</div>
+        </div>
+        
+        <button class="button" id="transformBtn">
+            🎵 Transform This Article
+        </button>
+        
+        <button class="button" id="refreshBtn">
+            🔄 Refresh Page
+        </button>
+        
+        <div class="stats" id="stats">
+            <div>📊 Transformations: <span id="transformCount">0</span></div>
+            <div>🕒 Last: <span id="lastTransform">Never</span></div>
+        </div>
+        
+        <div id="messages"></div>
+    </div>
+    
+    <div class="footer">
+        Made with ❤️ for Bollywood fans
+    </div>
+
+    <script>
+        // Popup script
+        document.addEventListener('DOMContentLoaded', async () => {
+            const statusText = document.getElementById('statusText');
+            const transformBtn = document.getElementById('transformBtn');
+            const refreshBtn = document.getElementById('refreshBtn');
+            const transformCount = document.getElementById('transformCount');
+            const lastTransform = document.getElementById('lastTransform');
+            const messages = document.getElementById('messages');
+            
+            // Get current tab
+            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            
+            // Check if current site is supported
+            const supportedSites = [
+                'timesofindia.com',
+                'hindustantimes.com',
+                'ndtv.com',
+                'indianexpress.com',
+                'indiatimes.com'
+            ];
+            
+            const isSupported = supportedSites.some(site => tab.url.includes(site));
+            
+            if (isSupported) {
+                statusText.innerHTML = `
+                    ✅ <strong>Supported Site Detected!</strong><br>
+                    Ready to transform this article
+                `;
+                transformBtn.disabled = false;
+            } else {
+                statusText.innerHTML = `
+                    ❌ <strong>Unsupported Site</strong><br>
+                    This extension works on Indian news sites like TOI, HT, NDTV, etc.
+                `;
+                transformBtn.disabled = true;
+            }
+            
+            // Load stats
+            chrome.storage.local.get(['transformationCount', 'lastTransformation'], (result) => {
+                transformCount.textContent = result.transformationCount || 0;
+                
+                if (result.lastTransformation) {
+                    const date = new Date(result.lastTransformation.timestamp);
+                    lastTransform.textContent = date.toLocaleString();
+                }
+            });
+            
+            // Transform button click
+            transformBtn.addEventListener('click', async () => {
+                transformBtn.disabled = true;
+                transformBtn.textContent = '🎬 Transforming...';
+                
+                try {
+                    const response = await chrome.tabs.sendMessage(tab.id, {
+                        action: 'transform'
+                    });
+                    
+                    if (response && response.success) {
+                        showMessage('✅ Transformation started! Check the page.', 'success');
+                        transformBtn.textContent = '✅ Transformed!';
+                    } else {
+                        throw new Error('No response from content script');
+                    }
+                } catch (error) {
+                    console.error('Transform error:', error);
+                    showMessage('❌ Error: Make sure the backend server is running!', 'error');
+                    transformBtn.textContent = '🎵 Transform This Article';
+                    transformBtn.disabled = false;
+                }
+            });
+            
+            // Refresh button click
+            refreshBtn.addEventListener('click', () => {
+                chrome.tabs.reload(tab.id);
+                window.close();
+            });
+            
+            function showMessage(text, type) {
+                const div = document.createElement('div');
+                div.className = type;
+                div.textContent = text;
+                messages.appendChild(div);
+                
+                setTimeout(() => {
+                    div.remove();
+                }, 5000);
+            }
+        });
+    </script>
+</body>
+</html>

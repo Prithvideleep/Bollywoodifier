@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "Bollywoodify News",
+  "version": "1.0",
+  "description": "Transform news articles into Bollywood-style songs and movie titles",
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "host_permissions": [
+    "http://localhost:5000/*",
+    "https://*.timesofindia.com/*",
+    "https://*.hindustantimes.com/*",
+    "https://*.indiatimes.com/*",
+    "https://*.ndtv.com/*",
+    "https://*.indianexpress.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.timesofindia.com/*",
+        "https://*.hindustantimes.com/*",
+        "https://*.indiatimes.com/*",
+        "https://*.ndtv.com/*",
+        "https://*.indianexpress.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Bollywoodify News"
+  }
+}
